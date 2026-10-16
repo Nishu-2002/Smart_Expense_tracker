@@ -29,6 +29,8 @@ DATABASE_URL = os.environ.get('DATABASE_URL')
 
 # 2. Determine Database Engine and Schema
 if DATABASE_URL:
+    if DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
     DB_URL = DATABASE_URL
     is_postgres = DB_URL.startswith('postgresql')
 elif DB_NAME:
@@ -43,13 +45,18 @@ else:
     is_postgres = False
 
 if is_postgres:
-    schema = DB_SCHEMA or 'smart_expense'
-    meta = MetaData(schema=schema)
-    engine = create_engine(
-        DB_URL,
-        connect_args={"options": f"-csearch_path={schema},public"},
-        pool_pre_ping=True
-    )
+    schema = (DB_SCHEMA or '').strip()
+    if schema and schema.lower() != 'public':
+        meta = MetaData(schema=schema)
+        engine = create_engine(
+            DB_URL,
+            connect_args={"options": f"-csearch_path={schema},public"},
+            pool_pre_ping=True
+        )
+    else:
+        schema = None
+        meta = MetaData()
+        engine = create_engine(DB_URL, pool_pre_ping=True)
 else:
     schema = None
     meta = MetaData()
@@ -332,9 +339,18 @@ class ImportLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 def init_db():
-    if is_postgres:
-        with engine.connect() as conn:
-            from sqlalchemy import text
-            conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {schema};"))
-            conn.commit()
+    if is_postgres and schema:
+        try:
+            with engine.connect() as conn:
+                from sqlalchemy import text
+                conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {schema};"))
+                conn.commit()
+        except Exception as e:
+            print(f"[Warning] Could not initialize schema '{schema}': {e}")
     Base.metadata.create_all(bind=engine)
+    try:
+        from seed_data import seed_defaults_if_empty
+        seed_defaults_if_empty()
+    except Exception as e:
+        print(f"[Warning] Seed defaults error: {e}")
+

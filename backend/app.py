@@ -12,7 +12,17 @@ from models import (
 )
 from categorizer import auto_categorize_text
 
-app = Flask(__name__)
+import os
+from pathlib import Path
+
+# Static frontend directory (when built with npm run build)
+FRONTEND_DIST = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'frontend', 'dist'))
+
+if os.path.exists(FRONTEND_DIST):
+    app = Flask(__name__, static_folder=FRONTEND_DIST, static_url_path='')
+else:
+    app = Flask(__name__)
+
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 init_db()
@@ -939,5 +949,24 @@ def export_excel():
     finally:
         db.close()
 
+# ----------------- FRONTEND SPA SERVING -----------------
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_frontend(path):
+    if path.startswith('api'):
+        return jsonify({'error': 'Not Found'}), 404
+    if FRONTEND_DIST and path != '' and os.path.exists(os.path.join(FRONTEND_DIST, path)):
+        return send_file(os.path.join(FRONTEND_DIST, path))
+    index_file = os.path.join(FRONTEND_DIST, 'index.html')
+    if FRONTEND_DIST and os.path.exists(index_file):
+        return send_file(index_file)
+    return jsonify({
+        'status': 'online',
+        'app': 'Smart Expense Tracker API',
+        'hint': 'Build the frontend to view the web application.'
+    })
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_ENV', 'development') == 'development'
+    app.run(host='0.0.0.0', port=port, debug=debug)
