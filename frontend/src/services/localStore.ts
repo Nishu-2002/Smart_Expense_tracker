@@ -22,7 +22,7 @@ const STORAGE_KEYS = {
 const DEFAULT_USER: User = {
   id: 1,
   name: 'Nishanth',
-  email: 'nishanth@example.com',
+  email: 'kmnishanth2002@gmail.com',
   avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
   currency: '₹',
   timezone: 'Asia/Kolkata',

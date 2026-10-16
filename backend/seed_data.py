@@ -18,7 +18,7 @@ def seed_defaults_if_empty():
         if not user:
             user = User(
                 name="Nishanth",
-                email="nishanth@example.com",
+                email="kmnishanth2002@gmail.com",
                 currency="₹",
                 timezone="Asia/Kolkata"
             )

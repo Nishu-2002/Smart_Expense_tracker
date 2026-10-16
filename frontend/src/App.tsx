@@ -66,6 +66,8 @@ export const App: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [selectedType, setSelectedType] = useState('all');
+  const [sortBy, setSortBy] = useState('date_desc');
 
   // Prefill state for Quick Add
   const [prefilledMerchant, setPrefilledMerchant] = useState('');
@@ -96,7 +98,9 @@ export const App: React.FC = () => {
         fetchTransactions({
           search: searchTerm,
           category_id: selectedCategoryId || undefined,
-          payment_method: selectedPaymentMethod || undefined
+          type: selectedType === 'all' ? undefined : selectedType,
+          payment_method: selectedPaymentMethod || undefined,
+          sort_by: sortBy
         }).catch(() => ({ total_count: 0, grand_total: 0, items: [], grouped_by_date: [] })),
         fetchAnalyticsSummary().catch(() => null),
         fetchReports('month').catch(() => null),
@@ -121,7 +125,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [searchTerm, selectedCategoryId, selectedPaymentMethod]);
+  }, [searchTerm, selectedCategoryId, selectedPaymentMethod, selectedType, sortBy]);
 
   const handleOpenAddExpense = (merchantQuery: string = '', categoryHint: string = '') => {
     setPrefilledMerchant(merchantQuery);
@@ -287,10 +291,15 @@ export const App: React.FC = () => {
                 searchTerm={searchTerm}
                 selectedCategoryId={selectedCategoryId}
                 selectedPaymentMethod={selectedPaymentMethod}
+                selectedType={selectedType}
+                sortBy={sortBy}
                 onSearchChange={setSearchTerm}
                 onCategoryFilter={setSelectedCategoryId}
                 onPaymentFilter={setSelectedPaymentMethod}
+                onTypeFilter={setSelectedType}
+                onSortChange={setSortBy}
                 onSelectTransaction={handleSelectTransaction}
+                onNavigateToAdd={() => setActiveTab('add')}
                 onBack={() => setActiveTab('home')}
               />
             )}
