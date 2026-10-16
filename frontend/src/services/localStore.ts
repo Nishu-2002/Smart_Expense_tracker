@@ -27,9 +27,7 @@ const DEFAULT_USER: User = {
   currency: '₹',
   timezone: 'Asia/Kolkata',
   accounts: [
-    { id: 1, name: 'HDFC Bank', type: 'Bank Account', balance: 25000, icon: 'landmark' },
-    { id: 2, name: 'Cash Wallet', type: 'Cash', balance: 2500, icon: 'wallet' },
-    { id: 3, name: 'UPI / Paytm', type: 'Wallet', balance: 5000, icon: 'smartphone' }
+    
   ]
 };
 
