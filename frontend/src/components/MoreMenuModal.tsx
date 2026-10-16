@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   X,
   PieChart,
@@ -11,9 +11,19 @@ import {
   Smartphone,
   Monitor,
   Download,
-  Info
+  Database,
+  Cloud,
+  Check,
+  RotateCcw
 } from 'lucide-react';
 import { ActiveTab, User } from '../types';
+import {
+  triggerExportCsv,
+  triggerExportExcel,
+  isUsingLocalStorage,
+  getCustomApiUrl,
+  setCustomApiUrl
+} from '../services/api';
 
 interface MoreMenuModalProps {
   isOpen: boolean;
@@ -25,6 +35,7 @@ interface MoreMenuModalProps {
   onSelectTab: (tab: ActiveTab) => void;
   onToggleTheme: () => void;
   onToggleFrame: () => void;
+  onRefreshData?: () => void;
 }
 
 export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({
@@ -36,9 +47,37 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({
   onClose,
   onSelectTab,
   onToggleTheme,
-  onToggleFrame
+  onToggleFrame,
+  onRefreshData
 }) => {
+  const [showApiSettings, setShowApiSettings] = useState(false);
+  const [apiUrlInput, setApiUrlInput] = useState(getCustomApiUrl());
+  const [savedSuccess, setSavedSuccess] = useState(false);
+
   if (!isOpen) return null;
+
+  const isLocal = isUsingLocalStorage();
+
+  const handleSaveApiUrl = () => {
+    setCustomApiUrl(apiUrlInput);
+    setSavedSuccess(true);
+    setTimeout(() => {
+      setSavedSuccess(false);
+      setShowApiSettings(false);
+      if (onRefreshData) onRefreshData();
+    }, 1200);
+  };
+
+  const handleResetToLocal = () => {
+    setCustomApiUrl('');
+    setApiUrlInput('');
+    setSavedSuccess(true);
+    setTimeout(() => {
+      setSavedSuccess(false);
+      setShowApiSettings(false);
+      if (onRefreshData) onRefreshData();
+    }, 1200);
+  };
 
   const menuItems = [
     { id: 'reports', label: 'Reports & Analytics', icon: PieChart, desc: 'Visual charts, trends & insights' },
@@ -63,10 +102,68 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({
               <span className="drawer-email">{user?.email || 'Manage Account'}</span>
             </div>
           </div>
-          <button className="icon-btn" onClick={onClose}>
+          <button className="icon-btn" onClick={onClose} aria-label="Close Menu">
             <X size={20} />
           </button>
         </div>
+
+        {/* Storage Mode Badge */}
+        <div className="storage-status-banner">
+          <div className="storage-status-left">
+            {isLocal ? (
+              <Database size={15} color="var(--accent-forest)" />
+            ) : (
+              <Cloud size={15} color="#0284c7" />
+            )}
+            <div>
+              <span className="storage-mode-title">
+                {isLocal ? 'Browser Storage Mode' : 'Cloud Backend Connected'}
+              </span>
+              <span className="storage-mode-subtitle">
+                {isLocal ? 'Offline & GitHub Pages persistent' : 'Syncing with cloud API'}
+              </span>
+            </div>
+          </div>
+          <button
+            className="storage-config-btn"
+            onClick={() => setShowApiSettings(!showApiSettings)}
+          >
+            {showApiSettings ? 'Close' : 'Configure'}
+          </button>
+        </div>
+
+        {/* API Settings Section */}
+        {showApiSettings && (
+          <div className="api-config-card animate-fade">
+            <label className="api-config-label">Custom Backend API URL (Optional)</label>
+            <p className="api-config-hint">
+              On GitHub Pages, records save directly in your browser. If you host the Flask backend on Render or Railway, paste your API URL below:
+            </p>
+            <input
+              type="text"
+              placeholder="e.g. https://my-expense-backend.onrender.com/api"
+              value={apiUrlInput}
+              onChange={(e) => setApiUrlInput(e.target.value)}
+              className="api-config-input"
+            />
+            <div className="api-config-actions">
+              <button
+                className="btn-api-save"
+                onClick={handleSaveApiUrl}
+                disabled={savedSuccess}
+              >
+                {savedSuccess ? <Check size={14} /> : null}
+                <span>{savedSuccess ? 'Saved!' : 'Save & Connect'}</span>
+              </button>
+              {apiUrlInput && (
+                <button className="btn-api-reset" onClick={handleResetToLocal}>
+                  <RotateCcw size={13} />
+                  <span>Use Local Storage</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* View Mode & Theme Switcher */}
         <div className="controls-row">
@@ -111,14 +208,26 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({
         <div className="export-section">
           <span className="export-label">Data Exports</span>
           <div className="export-btns-row">
-            <a href="/api/export/csv" target="_blank" rel="noreferrer" className="export-link-btn">
+            <button
+              onClick={() => {
+                triggerExportCsv();
+                onClose();
+              }}
+              className="export-link-btn"
+            >
               <Download size={14} />
               <span>Export CSV</span>
-            </a>
-            <a href="/api/export/excel" target="_blank" rel="noreferrer" className="export-link-btn">
+            </button>
+            <button
+              onClick={() => {
+                triggerExportExcel();
+                onClose();
+              }}
+              className="export-link-btn"
+            >
               <FileSpreadsheet size={14} />
               <span>Export Excel</span>
-            </a>
+            </button>
           </div>
         </div>
       </div>
@@ -143,13 +252,15 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({
           border-top-right-radius: 28px;
           padding: 22px 20px 30px;
           box-shadow: var(--shadow-elevated);
+          max-height: 90vh;
+          overflow-y: auto;
         }
 
         .drawer-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 18px;
+          margin-bottom: 14px;
         }
 
         .drawer-user {
@@ -177,6 +288,114 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({
           color: var(--text-secondary);
         }
 
+        .storage-status-banner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: var(--bg-subtle);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-md);
+          padding: 10px 12px;
+          margin-bottom: 14px;
+        }
+
+        .storage-status-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .storage-mode-title {
+          display: block;
+          font-size: 12.5px;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+
+        .storage-mode-subtitle {
+          display: block;
+          font-size: 11px;
+          color: var(--text-secondary);
+        }
+
+        .storage-config-btn {
+          background: none;
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-full);
+          padding: 4px 10px;
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--accent-forest);
+          cursor: pointer;
+        }
+
+        .api-config-card {
+          background: var(--bg-subtle);
+          border: 1px solid var(--accent-forest);
+          border-radius: var(--radius-md);
+          padding: 12px;
+          margin-bottom: 14px;
+        }
+
+        .api-config-label {
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-primary);
+          display: block;
+          margin-bottom: 4px;
+        }
+
+        .api-config-hint {
+          font-size: 11px;
+          color: var(--text-secondary);
+          margin-bottom: 10px;
+          line-height: 1.4;
+        }
+
+        .api-config-input {
+          width: 100%;
+          padding: 8px 10px;
+          border-radius: var(--radius-md);
+          border: 1px solid var(--border-color);
+          background: var(--bg-surface);
+          color: var(--text-primary);
+          font-size: 12px;
+          margin-bottom: 10px;
+        }
+
+        .api-config-actions {
+          display: flex;
+          gap: 8px;
+        }
+
+        .btn-api-save {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: var(--accent-forest);
+          color: white;
+          border: none;
+          border-radius: var(--radius-md);
+          padding: 7px 12px;
+          font-size: 11.5px;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .btn-api-reset {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          background: none;
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-md);
+          padding: 7px 10px;
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          cursor: pointer;
+        }
+
         .controls-row {
           display: flex;
           gap: 10px;
@@ -196,6 +415,7 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({
           font-size: 12.5px;
           font-weight: 600;
           color: var(--text-primary);
+          cursor: pointer;
         }
 
         .menu-list {
@@ -215,6 +435,7 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({
           border: 1px solid var(--border-color);
           text-align: left;
           transition: var(--transition);
+          cursor: pointer;
         }
 
         .menu-row:hover, .menu-row.active {
@@ -270,7 +491,7 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({
           font-size: 12px;
           font-weight: 600;
           color: var(--text-primary);
-          text-decoration: none;
+          cursor: pointer;
         }
       `}</style>
     </div>

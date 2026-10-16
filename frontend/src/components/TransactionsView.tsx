@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Category, Transaction, TransactionGroup } from '../types';
 import { CategoryIcon } from './CategoryIcon';
+import { triggerExportCsv, triggerExportExcel } from '../services/api';
 
 interface TransactionsViewProps {
   categories: Category[];
@@ -50,11 +51,11 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
   };
 
   const handleExportCsv = () => {
-    window.open('/api/export/csv', '_blank');
+    triggerExportCsv();
   };
 
   const handleExportExcel = () => {
-    window.open('/api/export/excel', '_blank');
+    triggerExportExcel();
   };
 
   return (

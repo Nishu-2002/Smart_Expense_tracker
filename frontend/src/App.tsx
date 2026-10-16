@@ -351,6 +351,7 @@ export const App: React.FC = () => {
         }}
         onToggleTheme={() => setIsDarkMode(!isDarkMode)}
         onToggleFrame={() => setIsMobileFrame(!isMobileFrame)}
+        onRefreshData={loadData}
       />
 
       <style>{`
