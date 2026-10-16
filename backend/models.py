@@ -348,9 +348,4 @@ def init_db():
         except Exception as e:
             print(f"[Warning] Could not initialize schema '{schema}': {e}")
     Base.metadata.create_all(bind=engine)
-    try:
-        from seed_data import seed_defaults_if_empty
-        seed_defaults_if_empty()
-    except Exception as e:
-        print(f"[Warning] Seed defaults error: {e}")
 

@@ -53,7 +53,6 @@ Double-click `start.bat` in the project root.
 #### 1. Backend:
 ```bash
 cd backend
-python seed_data.py   # Populates initial data matching the screenshot
 python app.py         # Runs Flask on http://127.0.0.1:5000
 ```
 
